@@ -25,18 +25,19 @@ typedef struct Clock {
    int p[3];
 } Clock;
 
+Clock globalClock;
 
 
 Clock clockQueue[BUFFER_SIZE];
 int clockCount = 0;
 
-pthread_mutex_t mutex;
+pthread_mutex_t mutex, cmutex;
 
 pthread_cond_t condFull;
 pthread_cond_t condEmpty;
 
 void printClock(Clock* clock, int id){
-   printf("Process: %d, Clock: (%d, %d, %d)\n", id, clock->p[0], clock->p[1], clock->p[2]);
+   printf("Consumidor %d consumiu o Relógio (%d, %d, %d)\n", id, clock->p[0], clock->p[1], clock->p[2]);
 }
 
 Clock consumeClock(){
@@ -44,7 +45,7 @@ Clock consumeClock(){
    
    while (clockCount == 0){
       pthread_cond_wait(&condEmpty, &mutex);
-      printf("Fila vazia\n");
+      printf("Não há produtos disponíves.\n");
    }
    
    Clock clock = clockQueue[0];
@@ -59,12 +60,13 @@ Clock consumeClock(){
    return clock;
 }
 
+
 void produceClock(Clock clock){
    pthread_mutex_lock(&mutex);
 
    while (clockCount == BUFFER_SIZE){
       pthread_cond_wait(&condFull, &mutex);
-      printf("Fila cheia.\n");
+      printf("Estoque cheio.\n");
    }
 
    clockQueue[clockCount] = clock;
@@ -75,7 +77,9 @@ void produceClock(Clock clock){
 }
 
 Clock updateClock(Clock* clock, long id){
+   pthread_mutex_lock(&cmutex);
    clock->p[id]++;
+   pthread_mutex_unlock(&cmutex);
    return *clock;
 }
 
@@ -90,6 +94,11 @@ int main(int argc, char* argv[]) {
 
    pthread_t thread[THREAD_NUM]; 
    long i;
+   
+   globalClock.p[0] = 0;
+   globalClock.p[1] = 0;
+   globalClock.p[2] = 0;
+   
    for (i = 0; i < THREAD_NUM; i++){  
       if (pthread_create(&thread[i], NULL, &startThread, (void*) i) != 0) {
          perror("Failed to create the thread");
@@ -101,7 +110,8 @@ int main(int argc, char* argv[]) {
          perror("Failed to join the thread");
       }  
    }
-
+   
+   srand(time(NULL));
    
    pthread_mutex_destroy(&mutex);
    pthread_cond_destroy(&condEmpty);
@@ -113,26 +123,25 @@ int main(int argc, char* argv[]) {
 
 void *startThread(void* args) {
    long id = (long) args;
-   Clock clock = {{0,0,0}};
+   Clock clock;
    
-   //Produtores
    if (id == 0 || id == 1 || id == 2){
+      //Produtores
       while (1){ 
-         clock = updateClock(&clock, id);
+         clock = updateClock(&globalClock, id);
          produceClock(clock);
-         //sleep(rand()%5);
-         sleep(1);
+         sleep(rand()%10);
+         //sleep(5);
       }
    } else {
       //Consumidores
       while (1){ 
          clock = consumeClock();
          printClock(&clock, id);
-         //sleep(rand()%5);
-         sleep(5);
+         sleep(rand()%5);
+         //sleep(10);
       }
    }
-   
    
    return NULL;
 }
