@@ -88,7 +88,7 @@ void *startThread(void* args);
 /*--------------------------------------------------------------------*/
 int main(int argc, char* argv[]) {
    pthread_mutex_init(&mutex, NULL);
-   
+   pthread_mutex_init(&cmutex, NULL);
    pthread_cond_init(&condEmpty, NULL);
    pthread_cond_init(&condFull, NULL);
 
@@ -114,6 +114,7 @@ int main(int argc, char* argv[]) {
    srand(time(NULL));
    
    pthread_mutex_destroy(&mutex);
+   pthread_mutex_destroy(&cmutex);
    pthread_cond_destroy(&condEmpty);
    pthread_cond_destroy(&condFull);
    return 0;
@@ -130,7 +131,7 @@ void *startThread(void* args) {
       while (1){ 
          clock = updateClock(&globalClock, id);
          produceClock(clock);
-         sleep(rand()%10);
+         sleep(rand()%2);
          //sleep(5);
       }
    } else {
