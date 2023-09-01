@@ -131,7 +131,7 @@ void *startThread(void* args) {
       while (1){ 
          clock = updateClock(&globalClock, id);
          produceClock(clock);
-         sleep(rand()%2);
+         sleep(rand()%10);
          //sleep(5);
       }
    } else {
